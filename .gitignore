@@ -1,0 +1,4 @@
+pass.dashboard.txt
+backend/.env
+backend/__pycache__/
+*.pyc
