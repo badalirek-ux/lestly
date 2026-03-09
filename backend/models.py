@@ -17,7 +17,8 @@ class Delivery(BaseModel):
     customerName: str
     phone: str
     address: str
-    orderDetails: str
+    orderDetails: str = ""
+    paymentMethod: str = "contanti"
     totalAmount: str
     status: str = "pending"  # pending | accepted | picked_up | in_transit | delivered | cancelled
     riderId: Optional[str] = None

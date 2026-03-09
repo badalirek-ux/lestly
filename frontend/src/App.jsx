@@ -7,6 +7,70 @@ import './App.css';
 const API = (import.meta.env.VITE_API_URL || "http://192.168.1.85:8000") + "/api";
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || "lestly-admin-2024";
 
+
+// ── ADDRESS AUTOCOMPLETE ──────────────────────────────────────────────────────
+function AddressAutocomplete({ value, onChange, placeholder }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSug, setShowSug] = useState(false);
+  const timerRef = useState(null);
+
+  const handleInput = (e) => {
+    const val = e.target.value;
+    onChange(val);
+    clearTimeout(timerRef[0]);
+    if (val.length < 3) { setSuggestions([]); return; }
+    timerRef[0] = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=it&q=${encodeURIComponent(val)}`,
+          { headers: { 'Accept-Language': 'it' } }
+        );
+        const data = await res.json();
+        setSuggestions(data);
+        setShowSug(true);
+      } catch {}
+    }, 400);
+  };
+
+  const pick = (item) => {
+    onChange(item.display_name);
+    setSuggestions([]);
+    setShowSug(false);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        placeholder={placeholder || 'Via Roma 1, Palermo'}
+        value={value}
+        onChange={handleInput}
+        onBlur={() => setTimeout(() => setShowSug(false), 200)}
+        onFocus={() => suggestions.length > 0 && setShowSug(true)}
+        style={{ width: '100%' }}
+      />
+      {showSug && suggestions.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
+          background: 'var(--bg3)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)', maxHeight: 200, overflowY: 'auto'
+        }}>
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={() => pick(s)} style={{
+              padding: '8px 12px', cursor: 'pointer', fontSize: '0.82rem',
+              borderBottom: '1px solid var(--border)', color: 'var(--text)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {s.display_name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SELECT SCREEN ─────────────────────────────────────────────────────────────
 function SelectScreen({ onSelect }) {
   return (
@@ -281,7 +345,7 @@ function AdminPanel({ onLogout }) {
             </div>
             <div className="form-group">
               <label>Indirizzo</label>
-              <input placeholder="Via Roma 1, Palermo" value={form.address} onChange={set("address")} />
+              <AddressAutocomplete value={form.address} onChange={(v) => setForm(f => ({ ...f, address: v }))} />
             </div>
             <button type="submit" className="btn btn-primary" disabled={creating}>
               {creating ? <span className="spinner" /> : "Crea Ristorante"}
@@ -344,7 +408,7 @@ function AdminPanel({ onLogout }) {
                       </div>
                       <div className="form-group" style={{ margin: 0 }}>
                         <label>Indirizzo</label>
-                        <input value={editForm.address} onChange={setEdit("address")} />
+                        <AddressAutocomplete value={editForm.address} onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
