@@ -298,7 +298,8 @@ function AdminPanel({ onLogout }) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {restaurants.map(r => (
-                <div key={r.restaurantId} style={{
+                <div key={r.restaurantId}>
+                <div style={{
                   background: "var(--bg3)", borderRadius: "var(--radius-sm)",
                   padding: "12px 16px", display: "flex", alignItems: "center", gap: 12,
                   border: r.active ? "1px solid var(--border)" : "1px solid #e74c3c",
@@ -352,6 +353,7 @@ function AdminPanel({ onLogout }) {
                     </div>
                   </div>
                 )}
+                </div>
               ))}
             </div>
           )}
