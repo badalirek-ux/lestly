@@ -20,16 +20,14 @@ function formatTime(iso) {
 
 
 // ── GLOBAL CHAT LISTENER (sempre attivo, anche con chat chiusa) ──────────────
-function useGlobalChatListener(deliveries, onNewMessage) {
+function useGlobalChatListener(deliveries, onNewMessageRef) {
   const wsMap   = useRef({});
-  const cbRef   = useRef(onNewMessage);
-  cbRef.current = onNewMessage;
 
   const depKey = deliveries.map(d => d.deliveryId).join(',');
 
   useEffect(() => {
     const activeIds = deliveries
-      .filter(d => ['accepted','picked_up','in_transit'].includes(d.status))
+      .filter(d => ['pending','accepted','picked_up','in_transit'].includes(d.status))
       .map(d => d.deliveryId);
 
     // Chiudi WS non più necessari
@@ -54,7 +52,7 @@ function useGlobalChatListener(deliveries, onNewMessage) {
             const data = JSON.parse(e.data);
             console.log('🔵 Messaggio WS:', data);
             if (data.event === 'chat:message' && data.sender === 'rider') {
-              cbRef.current(data.message, id);
+              onNewMessageRef.current(data.message, id);
             }
           } catch(err) { console.error('WS error:', err); }
         };
@@ -198,7 +196,16 @@ function NewOrderForm({ restaurantId, onCreated }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const fullAddress = form.civico ? `${form.address}, ${form.civico}` : form.address;
+      // Insert civico right after the street name (before city)
+      let fullAddress = form.address;
+      if (form.civico) {
+        const commaIdx = form.address.indexOf(',');
+        if (commaIdx !== -1) {
+          fullAddress = form.address.slice(0, commaIdx) + ' ' + form.civico + form.address.slice(commaIdx);
+        } else {
+          fullAddress = form.address + ' ' + form.civico;
+        }
+      }
       const order = {
         deliveryId: `DEL${Date.now()}`,
         restaurantId,
@@ -643,10 +650,6 @@ export default function RistoranteView({ restaurantId }) {
   const [toast, setToast]           = useState(null);
   const [unreadChats, setUnreadChats] = useState({});
 
-  const handleNewChatMessage = (message, deliveryId) => {
-    onChatMsgRef.current(message, deliveryId);
-  };
-
   const fetchOrders = async () => {
     try {
       const res = await axios.get(`${API}/deliveries/restaurant/${restaurantId}`);
@@ -679,7 +682,7 @@ export default function RistoranteView({ restaurantId }) {
     setToastRef.current(`💬 Rider: "${message.slice(0, 40)}${message.length > 40 ? '...' : ''}"`);
   });
 
-  useGlobalChatListener(deliveries, onChatMsgRef.current);
+  useGlobalChatListener(deliveries, onChatMsgRef);
 
   const active    = deliveries.filter(d => !['delivered','cancelled'].includes(d.status));
   const completed = deliveries.filter(d => d.status === 'delivered');
@@ -732,7 +735,7 @@ export default function RistoranteView({ restaurantId }) {
               <p>Nessun ordine attivo. <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={() => setTab('new')}>Crea il primo</button></p>
             </div>
           )}
-          {active.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={handleNewChatMessage} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
+          {active.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={(msg, id) => onChatMsgRef.current(msg, id)} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
         </div>
       )}
 
@@ -743,7 +746,7 @@ export default function RistoranteView({ restaurantId }) {
           {!loading && deliveries.length === 0 && (
             <div className="empty-state"><div className="empty-icon">📦</div><p>Nessun ordine ancora</p></div>
           )}
-          {deliveries.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={handleNewChatMessage} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
+          {deliveries.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={(msg, id) => onChatMsgRef.current(msg, id)} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
         </div>
       )}
 
