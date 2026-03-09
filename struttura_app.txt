@@ -1,0 +1,40 @@
+PROGETTO
+└── backend
+	  └──__pycache__
+	  	      └── database.cpython-312
+	  	      └── main.cpython-312
+	  	      └── models.cpython-312
+	  	      └── routes.cpython-312
+	  └── .env
+	  └── database.py
+	  └── main.py
+	  └── models.py
+	  └── requirements.txt
+	  └──routes.py
+	  └──server.py
+└── frontend
+	  └── node_modules
+	  └── public
+	  	└── vite.svg
+	  └── src
+	  	└── assets
+	  	      └── react.svg
+	  	├── components        
+    		│   ├── RistoranteView.jsx
+    		│   └── RiderView.jsx
+	  	├── App.css
+		├── components        
+		├── index.css
+	  	└── main.jsx
+	  └── .gitignore
+	  └── eslint.config.js
+	  └── index.html
+	  └── package.json
+	  └── package-lock.json
+	  └── README.md
+	  └── vite.config.js
+└── models
+	└── models.py
+	└── routes.py
+	└── server.py
+└──contracts.md
