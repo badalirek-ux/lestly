@@ -196,12 +196,13 @@ function NewOrderForm({ restaurantId, onCreated }) {
     e.preventDefault();
     setLoading(true);
     try {
-      // Insert civico right after the street name (before city)
+      // Insert civico right after street name (before first comma)
       let fullAddress = form.address;
       if (form.civico) {
-        const commaIdx = form.address.indexOf(',');
-        if (commaIdx !== -1) {
-          fullAddress = form.address.slice(0, commaIdx) + ' ' + form.civico + form.address.slice(commaIdx);
+        const firstComma = form.address.indexOf(',');
+        if (firstComma !== -1) {
+          // e.g. "Via Garibaldi, Palermo..." → "Via Garibaldi 10, Palermo..."
+          fullAddress = form.address.slice(0, firstComma) + ' ' + form.civico + form.address.slice(firstComma);
         } else {
           fullAddress = form.address + ' ' + form.civico;
         }
