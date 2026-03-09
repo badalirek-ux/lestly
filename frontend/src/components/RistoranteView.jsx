@@ -47,7 +47,7 @@ function useGlobalChatListener(deliveries, onNewMessage) {
 
       function connect() {
         if (destroyed) return;
-        ws = new WebSocket('ws://192.168.1.85:8000/ws/chat?room=' + id);
+        ws = new WebSocket((import.meta.env.VITE_WS_URL || 'ws://192.168.1.85:8000') + '/ws/chat?room=' + id);
         ws.onopen    = () => console.log('🟢 WS connesso room:', id);
         ws.onmessage = (e) => {
           try {
@@ -119,7 +119,8 @@ function AddressAutocomplete({ value, onChange, required }) {
       setLoading(true);
       try {
         const res = await fetch(
-          `${API}/geocode?q=${encodeURIComponent(val)}`
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=it&q=${encodeURIComponent(val)}`,
+          { headers: { 'Accept-Language': 'it' } }
         );
         const data = await res.json();
         setSuggestions(data);
@@ -187,7 +188,7 @@ function AddressAutocomplete({ value, onChange, required }) {
 // ── ORDER FORM ──────────────────────────────────────────────────────────────
 function NewOrderForm({ restaurantId, onCreated }) {
   const [form, setForm] = useState({
-    customerName: '', phone: '', address: '', civico: '', orderDetails: '', totalAmount: ''
+    customerName: '', phone: '', address: '', civico: '', totalAmount: '', paymentMethod: 'contanti'
   });
   const [loading, setLoading] = useState(false);
 
@@ -207,7 +208,7 @@ function NewOrderForm({ restaurantId, onCreated }) {
         tracking: []
       };
       await axios.post(`${API}/deliveries`, order);
-      setForm({ customerName: '', phone: '', address: '', civico: '', orderDetails: '', totalAmount: '' });
+      setForm({ customerName: '', phone: '', address: '', civico: '', totalAmount: '', paymentMethod: 'contanti' });
       onCreated();
     } catch (err) {
       alert('Errore nell\'invio. Controlla il backend.');
@@ -243,14 +244,17 @@ function NewOrderForm({ restaurantId, onCreated }) {
           <input placeholder="es. 10" value={form.civico} onChange={set('civico')} />
         </div>
       </div>
-      <div className="form-group">
-        <label>Dettaglio ordine</label>
-        <textarea rows={2} placeholder="2x Margherita, 1x Coca Cola..." value={form.orderDetails} onChange={set('orderDetails')} required />
-      </div>
       <div className="grid-2">
         <div className="form-group">
           <label>Totale (€)</label>
           <input placeholder="24.50" value={form.totalAmount} onChange={set('totalAmount')} required />
+        </div>
+        <div className="form-group">
+          <label>Pagamento</label>
+          <select value={form.paymentMethod} onChange={set('paymentMethod')} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: '0.9rem' }}>
+            <option value="contanti">💵 Contanti</option>
+            <option value="pos">💳 POS</option>
+          </select>
         </div>
       </div>
       <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
@@ -376,7 +380,7 @@ function OrderCard({ order, onRefresh, onNewChatMessage, unread = 0, onClearUnre
           <div style={{ color: 'var(--text)', fontWeight: 500, marginBottom: 2 }}>{order.customerName}</div>
           <div style={{ color: 'var(--text2)', fontSize: '0.82rem' }}>📍 {order.address}</div>
           <div style={{ color: 'var(--text3)', fontSize: '0.8rem', marginTop: 2 }}>
-            {order.orderDetails} · <strong style={{ color: 'var(--text2)' }}>€{order.totalAmount}</strong>
+            <strong style={{ color: 'var(--text2)' }}>€{order.totalAmount}</strong> · {order.paymentMethod === 'pos' ? '💳 POS' : '💵 Contanti'}
           </div>
           <div style={{ color: 'var(--text3)', fontSize: '0.75rem', marginTop: 4 }}>
             Creato alle {formatTime(order.createdAt)}
@@ -483,6 +487,26 @@ function RiderManagement() {
     } catch {}
   };
 
+  const [editingRider, setEditingRider] = useState(null);
+  const [editForm, setEditForm]         = useState({});
+
+  const startEdit = (r) => {
+    setEditingRider(r.riderId);
+    setEditForm({ name: r.name, phone: r.phone, vehicle: r.vehicle });
+  };
+
+  const saveEdit = async (riderId) => {
+    try {
+      await axios.patch(`${API}/riders/${riderId}`, editForm);
+      setEditingRider(null);
+      fetchRiders();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Errore modifica');
+    }
+  };
+
+  const setEdit = (k) => (e) => setEditForm(f => ({ ...f, [k]: e.target.value }));
+
   const VEHICLE_ICON = { Moto: '🛵', Auto: '🚗', Bici: '🚲' };
 
   return (
@@ -563,6 +587,7 @@ function RiderManagement() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => startEdit(r)}>✏️ Modifica</button>
               <button
                 className={`btn btn-sm ${r.available ? 'btn-ghost' : 'btn-green'}`}
                 onClick={() => toggleAvailability(r)}
@@ -578,6 +603,32 @@ function RiderManagement() {
               </button>
             </div>
           </div>
+          {editingRider === r.riderId && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div className="grid-2" style={{ marginBottom: 8 }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Nome</label>
+                  <input value={editForm.name} onChange={setEdit('name')} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Telefono</label>
+                  <input value={editForm.phone} onChange={setEdit('phone')} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: 8 }}>
+                <label>Veicolo</label>
+                <select value={editForm.vehicle} onChange={setEdit('vehicle')}>
+                  <option value="Moto">🛵 Moto</option>
+                  <option value="Auto">🚗 Auto</option>
+                  <option value="Bici">🚲 Bici</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary btn-sm" onClick={() => saveEdit(r.riderId)}>💾 Salva</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingRider(null)}>Annulla</button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

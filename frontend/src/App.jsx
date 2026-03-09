@@ -202,6 +202,26 @@ function AdminPanel({ onLogout }) {
     setCreating(false);
   };
 
+  const [editingRest, setEditingRest] = useState(null);
+  const [editForm, setEditForm]       = useState({});
+
+  const startEdit = (r) => {
+    setEditingRest(r.restaurantId);
+    setEditForm({ name: r.name, email: r.email || '', phone: r.phone || '', address: r.address || '' });
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      await axios.patch(`${API}/admin/restaurants/${id}/update?admin_key=${ADMIN_KEY}`, editForm);
+      setEditingRest(null);
+      fetchRestaurants();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Errore modifica');
+    }
+  };
+
+  const setEdit = (k) => (e) => setEditForm(f => ({ ...f, [k]: e.target.value }));
+
   const toggleActive = async (id) => {
     await axios.patch(`${API}/admin/restaurants/${id}?admin_key=${ADMIN_KEY}`);
     fetchRestaurants();
@@ -298,6 +318,7 @@ function AdminPanel({ onLogout }) {
                   }}>
                     {r.active ? "Attivo" : "Disattivo"}
                   </span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => startEdit(r)}>✏️</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(r.restaurantId)}>
                     {r.active ? "⏸ Disattiva" : "▶ Attiva"}
                   </button>
@@ -305,6 +326,32 @@ function AdminPanel({ onLogout }) {
                     🗑
                   </button>
                 </div>
+                {editingRest === r.restaurantId && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Nome</label>
+                        <input value={editForm.name} onChange={setEdit("name")} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Telefono</label>
+                        <input value={editForm.phone} onChange={setEdit("phone")} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Email</label>
+                        <input value={editForm.email} onChange={setEdit("email")} />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Indirizzo</label>
+                        <input value={editForm.address} onChange={setEdit("address")} />
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn btn-primary btn-sm" onClick={() => saveEdit(r.restaurantId)}>💾 Salva</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditingRest(null)}>Annulla</button>
+                    </div>
+                  </div>
+                )}
               ))}
             </div>
           )}

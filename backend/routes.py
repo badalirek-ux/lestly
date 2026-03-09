@@ -255,6 +255,16 @@ async def get_rider(rider_id: str):
     return doc
 
 
+@router.patch("/riders/{rider_id}")
+async def update_rider(rider_id: str, data: dict):
+    """Aggiorna i dati di un rider (nome, telefono, veicolo)."""
+    allowed = {k: v for k, v in data.items() if k in ["name", "phone", "vehicle", "email"]}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+    await riders_collection.update_one({"riderId": rider_id}, {"$set": allowed})
+    return {"message": "Rider aggiornato"}
+
+
 @router.patch("/riders/{rider_id}/availability")
 async def update_rider_availability(rider_id: str, data: UpdateAvailability):
     result = await riders_collection.update_one(
@@ -382,6 +392,17 @@ async def create_restaurant(data: CreateRestaurant, admin_key: str = ""):
     )
     await restaurants_collection.insert_one(restaurant.model_dump())
     return {"restaurantId": restaurant_id, "name": data.name, "message": "Ristorante creato"}
+
+
+@router.patch("/admin/restaurants/{restaurant_id}/update")
+async def update_restaurant(restaurant_id: str, data: dict, admin_key: str = Query(...)):
+    if admin_key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    allowed = {k: v for k, v in data.items() if k in ["name", "phone", "email", "address"]}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+    await restaurants_collection.update_one({"restaurantId": restaurant_id}, {"$set": allowed})
+    return {"message": "Ristorante aggiornato"}
 
 
 @router.patch("/admin/restaurants/{restaurant_id}")
