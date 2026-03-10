@@ -716,8 +716,11 @@ function ChangePasswordPanel({ endpoint }) {
 export default function RistoranteView({ restaurantId }) {
   const [deliveries, setDeliveries] = useState([]);
   const [tab, setTab]               = useState('active');
-  const [dateFrom, setDateFrom]     = useState('');
-  const [dateTo, setDateTo]         = useState('');
+  const [dateFrom, setDateFrom]         = useState('');
+  const [dateTo, setDateTo]             = useState('');
+  const [riderFilter, setRiderFilter]   = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
+  const [DUPLICATE_ setRiderFilter] = useState('');
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState(null);
   const [unreadChats, setUnreadChats] = useState({});
@@ -811,12 +814,17 @@ export default function RistoranteView({ restaurantId }) {
       {/* Storico con filtri */}
       {tab === 'all' && (() => {
         const filtered = deliveries.filter(o => {
-          if (!dateFrom && !dateTo) return true;
           const d = new Date(o.createdAt);
           if (dateFrom && d < new Date(dateFrom)) return false;
           if (dateTo   && d > new Date(dateTo + 'T23:59:59')) return false;
+          if (riderFilter && o.riderId !== riderFilter) return false;
+          if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
           return true;
         });
+        // Lista rider unici dagli ordini
+        const riderOptions = [...new Map(
+          deliveries.filter(o => o.riderId).map(o => [o.riderId, { id: o.riderId, name: o.riderName || o.riderId }])
+        ).values()];
         const totale = filtered.reduce((sum, o) => sum + parseFloat(o.totalAmount || 0), 0);
         const consegnati = filtered.filter(o => o.status === 'delivered').length;
         return (
@@ -832,7 +840,24 @@ export default function RistoranteView({ restaurantId }) {
                   <label>Al</label>
                   <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>Reset</button>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
+                  <label>Rider</label>
+                  <select value={riderFilter} onChange={e => setRiderFilter(e.target.value)} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: '0.9rem' }}>
+                    <option value="">Tutti i rider</option>
+                    {riderOptions.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
+                  <label>Pagamento</label>
+                  <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: '0.9rem' }}>
+                    <option value="">Tutti</option>
+                    <option value="contanti">💵 Contanti</option>
+                    <option value="pos">💳 POS</option>
+                  </select>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); setRiderFilter(''); setPaymentFilter(''); }}>Reset</button>
               </div>
               {/* Riepilogo */}
               <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
@@ -847,6 +872,14 @@ export default function RistoranteView({ restaurantId }) {
                 <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
                   <span style={{ color: 'var(--text3)' }}>Totale </span>
                   <strong style={{ color: 'var(--orange)' }}>€{totale.toFixed(2)}</strong>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text3)' }}>💵 </span>
+                  <strong>€{filtered.filter(o => o.paymentMethod !== 'pos').reduce((s, o) => s + parseFloat(o.totalAmount || 0), 0).toFixed(2)}</strong>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text3)' }}>💳 </span>
+                  <strong>€{filtered.filter(o => o.paymentMethod === 'pos').reduce((s, o) => s + parseFloat(o.totalAmount || 0), 0).toFixed(2)}</strong>
                 </div>
               </div>
             </div>
