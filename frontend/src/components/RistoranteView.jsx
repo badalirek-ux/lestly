@@ -449,7 +449,11 @@ function RiderManagement() {
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchRiders(); }, []);
+  useEffect(() => {
+    fetchRiders();
+    const interval = setInterval(fetchRiders, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
