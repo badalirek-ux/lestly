@@ -282,6 +282,8 @@ function MyDeliveryCard({ order, riderId, onUpdated, onNewChatMessage, unread = 
 // ── MAIN RIDER VIEW ───────────────────────────────────────────────────────────
 export default function RiderView({ riderId, riderInfo }) {
   const [available,    setAvailable]    = useState([]);
+  const [isOnline,     setIsOnline]     = useState(riderInfo?.available ?? true);
+  const [togglingOnline, setTogglingOnline] = useState(false);
   const [myDeliveries, setMyDeliveries] = useState([]);
   const [tab,          setTab]          = useState('available');
   const [loading,      setLoading]      = useState(true);
@@ -300,6 +302,15 @@ export default function RiderView({ riderId, riderInfo }) {
 
   // Chiedi permesso notifiche al mount
   const showToast = (msg) => setToast(msg);
+
+  const toggleOnline = async () => {
+    setTogglingOnline(true);
+    try {
+      await axios.patch(`${API}/riders/${riderId}/availability`, { available: !isOnline });
+      setIsOnline(v => !v);
+    } catch { showToast('Errore nel cambio stato'); }
+    finally { setTogglingOnline(false); }
+  };
 
   const fetchData = async () => {
     try {
@@ -343,9 +354,27 @@ export default function RiderView({ riderId, riderInfo }) {
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
       <div className="page-title">Dashboard Rider</div>
-      <div className="page-subtitle">
-        {riderInfo?.name || riderId}
-
+      <div className="page-subtitle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span>{riderInfo?.name || riderId}</span>
+        <button
+          onClick={toggleOnline}
+          disabled={togglingOnline}
+          style={{
+            padding: '8px 20px',
+            borderRadius: 100,
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            fontFamily: 'Syne',
+            transition: 'all 0.2s',
+            background: isOnline ? 'var(--green)' : 'var(--bg3)',
+            color: isOnline ? 'white' : 'var(--text3)',
+            boxShadow: isOnline ? '0 0 12px rgba(39,174,96,0.4)' : 'none',
+          }}
+        >
+          {togglingOnline ? '...' : isOnline ? '🟢 Online' : '⚫ Offline'}
+        </button>
       </div>
 
       {/* Stats */}
