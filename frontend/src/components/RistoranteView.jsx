@@ -720,7 +720,6 @@ export default function RistoranteView({ restaurantId }) {
   const [dateTo, setDateTo]             = useState('');
   const [riderFilter, setRiderFilter]   = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
-  const [DUPLICATE_ setRiderFilter] = useState('');
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState(null);
   const [unreadChats, setUnreadChats] = useState({});
