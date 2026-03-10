@@ -648,6 +648,71 @@ function RiderManagement() {
 }
 
 
+// ── CHANGE PASSWORD PANEL ─────────────────────────────────────────────────────
+function ChangePasswordPanel({ endpoint }) {
+  const [form, setForm]     = useState({ oldPassword: '', newPassword: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg]       = useState(null);
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (form.newPassword !== form.confirm) {
+      setMsg({ ok: false, text: 'Le password non coincidono' });
+      return;
+    }
+    if (form.newPassword.length < 4) {
+      setMsg({ ok: false, text: 'La password deve essere di almeno 4 caratteri' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await axios.post(endpoint, {
+        oldPassword: form.oldPassword,
+        newPassword: form.newPassword
+      });
+      setMsg({ ok: true, text: 'Password aggiornata con successo!' });
+      setForm({ oldPassword: '', newPassword: '', confirm: '' });
+    } catch (err) {
+      setMsg({ ok: false, text: err.response?.data?.detail || 'Errore nel cambio password' });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="panel">
+      <div className="section-title">🔐 Cambio Password</div>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Password attuale</label>
+          <input type="password" placeholder="••••••••" value={form.oldPassword} onChange={set('oldPassword')} required />
+        </div>
+        <div className="form-group">
+          <label>Nuova password</label>
+          <input type="password" placeholder="••••••••" value={form.newPassword} onChange={set('newPassword')} required />
+        </div>
+        <div className="form-group">
+          <label>Conferma nuova password</label>
+          <input type="password" placeholder="••••••••" value={form.confirm} onChange={set('confirm')} required />
+        </div>
+        {msg && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: 12,
+            background: msg.ok ? 'var(--green-dim)' : 'rgba(231,76,60,0.1)',
+            color: msg.ok ? 'var(--green)' : '#e74c3c',
+            border: `1px solid ${msg.ok ? 'var(--green)33' : '#e74c3c33'}`
+          }}>
+            {msg.ok ? '✅' : '❌'} {msg.text}
+          </div>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? '⏳ Salvataggio...' : '🔐 Cambia Password'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function RistoranteView({ restaurantId }) {
   const [deliveries, setDeliveries] = useState([]);
   const [tab, setTab]               = useState('active');
@@ -718,6 +783,7 @@ export default function RistoranteView({ restaurantId }) {
         <button className={`tab ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>Attivi ({active.length})</button>
         <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>📋 Storico</button>
         <button className={`tab ${tab === 'riders' ? 'active' : ''}`} onClick={() => setTab('riders')}>👥 Rider</button>
+        <button className={`tab ${tab === 'profile' ? 'active' : ''}`} onClick={() => setTab('profile')}>👤 Profilo</button>
       </div>
 
       {/* New order */}
@@ -798,6 +864,11 @@ export default function RistoranteView({ restaurantId }) {
         <div className="panel">
           <RiderManagement />
         </div>
+      )}
+
+      {/* Profilo */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel endpoint={`${API}/restaurants/${restaurantId}/change-password`} />
       )}
 
     </div>

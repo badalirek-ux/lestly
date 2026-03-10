@@ -334,6 +334,32 @@ async def set_rider_password(rider_id: str, data: RiderLogin):
     return {"message": "Password aggiornata"}
 
 
+@router.post("/riders/{rider_id}/change-password")
+async def change_rider_password(rider_id: str, data: dict):
+    """Cambio password rider con verifica vecchia password."""
+    doc = await riders_collection.find_one({"riderId": rider_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rider non trovato")
+    if not verify_password(data.get("oldPassword", ""), doc.get("password", "")):
+        raise HTTPException(status_code=400, detail="Password attuale non corretta")
+    hashed = hash_password(data.get("newPassword", ""))
+    await riders_collection.update_one({"riderId": rider_id}, {"$set": {"password": hashed}})
+    return {"message": "Password aggiornata"}
+
+
+@router.post("/restaurants/{restaurant_id}/change-password")
+async def change_restaurant_password(restaurant_id: str, data: dict):
+    """Cambio password ristorante con verifica vecchia password."""
+    doc = await restaurants_collection.find_one({"restaurantId": restaurant_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Ristorante non trovato")
+    if not verify_password(data.get("oldPassword", ""), doc.get("password", "")):
+        raise HTTPException(status_code=400, detail="Password attuale non corretta")
+    hashed = hash_password(data.get("newPassword", ""))
+    await restaurants_collection.update_one({"restaurantId": restaurant_id}, {"$set": {"password": hashed}})
+    return {"message": "Password aggiornata"}
+
+
 # ═══════════════════════════════════════════════════════════════
 #  RESTAURANTS
 # ═══════════════════════════════════════════════════════════════

@@ -89,6 +89,15 @@ function Toast({ message, onClose }) {
     }}>
       🔔 {message}
       <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.1rem', marginLeft: 4 }}>✕</button>
+
+      {/* Profilo / Cambio password */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel
+          endpoint={`${API}/riders/${riderId}/change-password`}
+          label="Rider"
+        />
+      )}
+
     </div>
   );
 }
@@ -149,6 +158,15 @@ function ChatPanel({ deliveryId, sender, onNewMessage }) {
         <input value={text} onChange={e => setText(e.target.value)} placeholder="Scrivi al ristorante..." />
         <button type="submit" className="btn btn-primary btn-sm">Invia</button>
       </form>
+
+      {/* Profilo / Cambio password */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel
+          endpoint={`${API}/riders/${riderId}/change-password`}
+          label="Rider"
+        />
+      )}
+
     </div>
   );
 }
@@ -191,6 +209,15 @@ function AvailableCard({ order, riderId, onAccepted }) {
           {loading ? <span className="spinner" /> : '🛵 Accetta'}
         </button>
       </div>
+
+      {/* Profilo / Cambio password */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel
+          endpoint={`${API}/riders/${riderId}/change-password`}
+          label="Rider"
+        />
+      )}
+
     </div>
   );
 }
@@ -275,6 +302,80 @@ function MyDeliveryCard({ order, riderId, onUpdated, onNewChatMessage, unread = 
           <ChatPanel deliveryId={order.deliveryId} sender="rider" onNewMessage={onNewChatMessage} />
         </div>
       )}
+
+      {/* Profilo / Cambio password */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel
+          endpoint={`${API}/riders/${riderId}/change-password`}
+          label="Rider"
+        />
+      )}
+
+    </div>
+  );
+}
+
+// ── CHANGE PASSWORD PANEL ─────────────────────────────────────────────────────
+function ChangePasswordPanel({ endpoint }) {
+  const [form, setForm]     = useState({ oldPassword: '', newPassword: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg]       = useState(null);
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (form.newPassword !== form.confirm) {
+      setMsg({ ok: false, text: 'Le password non coincidono' });
+      return;
+    }
+    if (form.newPassword.length < 4) {
+      setMsg({ ok: false, text: 'La password deve essere di almeno 4 caratteri' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await axios.post(endpoint, {
+        oldPassword: form.oldPassword,
+        newPassword: form.newPassword
+      });
+      setMsg({ ok: true, text: 'Password aggiornata con successo!' });
+      setForm({ oldPassword: '', newPassword: '', confirm: '' });
+    } catch (err) {
+      setMsg({ ok: false, text: err.response?.data?.detail || 'Errore nel cambio password' });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="panel">
+      <div className="section-title">🔐 Cambio Password</div>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Password attuale</label>
+          <input type="password" placeholder="••••••••" value={form.oldPassword} onChange={set('oldPassword')} required />
+        </div>
+        <div className="form-group">
+          <label>Nuova password</label>
+          <input type="password" placeholder="••••••••" value={form.newPassword} onChange={set('newPassword')} required />
+        </div>
+        <div className="form-group">
+          <label>Conferma nuova password</label>
+          <input type="password" placeholder="••••••••" value={form.confirm} onChange={set('confirm')} required />
+        </div>
+        {msg && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: 12,
+            background: msg.ok ? 'var(--green-dim)' : 'rgba(231,76,60,0.1)',
+            color: msg.ok ? 'var(--green)' : '#e74c3c',
+            border: `1px solid ${msg.ok ? 'var(--green)33' : '#e74c3c33'}`
+          }}>
+            {msg.ok ? '✅' : '❌'} {msg.text}
+          </div>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? '⏳ Salvataggio...' : '🔐 Cambia Password'}
+        </button>
+      </form>
     </div>
   );
 }
@@ -398,6 +499,9 @@ export default function RiderView({ riderId, riderInfo }) {
         <button className={`tab ${tab === 'completed' ? 'active' : ''}`} onClick={() => setTab('completed')} style={{ flex: 1 }}>
           Storico
         </button>
+        <button className={`tab ${tab === 'profile' ? 'active' : ''}`} onClick={() => setTab('profile')} style={{ flex: 1 }}>
+          👤 Profilo
+        </button>
       </div>
 
       {/* Available */}
@@ -462,6 +566,15 @@ export default function RiderView({ riderId, riderInfo }) {
           ))}
         </div>
       )}
+
+      {/* Profilo / Cambio password */}
+      {tab === 'profile' && (
+        <ChangePasswordPanel
+          endpoint={`${API}/riders/${riderId}/change-password`}
+          label="Rider"
+        />
+      )}
+
     </div>
   );
 }
