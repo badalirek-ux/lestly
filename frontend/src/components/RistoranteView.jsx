@@ -647,6 +647,8 @@ function RiderManagement() {
 export default function RistoranteView({ restaurantId }) {
   const [deliveries, setDeliveries] = useState([]);
   const [tab, setTab]               = useState('active');
+  const [dateFrom, setDateFrom]     = useState('');
+  const [dateTo, setDateTo]         = useState('');
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState(null);
   const [unreadChats, setUnreadChats] = useState({});
@@ -656,11 +658,7 @@ export default function RistoranteView({ restaurantId }) {
       const res = await axios.get(`${API}/deliveries/restaurant/${restaurantId}`);
       setDeliveries(res.data);
     } catch {
-      // fallback a tutti
-      try {
-        const res = await axios.get(`${API}/deliveries`);
-        setDeliveries(res.data);
-      } catch {}
+      // nessun fallback - ogni ristorante vede solo i propri ordini
     } finally {
       setLoading(false);
     }
@@ -714,7 +712,7 @@ export default function RistoranteView({ restaurantId }) {
       <div className="tabs">
         <button className={`tab ${tab === 'new' ? 'active' : ''}`} onClick={() => setTab('new')}>+ Nuovo Ordine</button>
         <button className={`tab ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>Attivi ({active.length})</button>
-        <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>Tutti ({deliveries.length})</button>
+        <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>📋 Storico</button>
         <button className={`tab ${tab === 'riders' ? 'active' : ''}`} onClick={() => setTab('riders')}>👥 Rider</button>
       </div>
 
@@ -740,16 +738,56 @@ export default function RistoranteView({ restaurantId }) {
         </div>
       )}
 
-      {/* All orders */}
-      {tab === 'all' && (
-        <div>
-          {loading && <div className="loading-row"><span className="spinner" /> Caricamento...</div>}
-          {!loading && deliveries.length === 0 && (
-            <div className="empty-state"><div className="empty-icon">📦</div><p>Nessun ordine ancora</p></div>
-          )}
-          {deliveries.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={(msg, id) => onChatMsgRef.current(msg, id)} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
-        </div>
-      )}
+      {/* Storico con filtri */}
+      {tab === 'all' && (() => {
+        const filtered = deliveries.filter(o => {
+          if (!dateFrom && !dateTo) return true;
+          const d = new Date(o.createdAt);
+          if (dateFrom && d < new Date(dateFrom)) return false;
+          if (dateTo   && d > new Date(dateTo + 'T23:59:59')) return false;
+          return true;
+        });
+        const totale = filtered.reduce((sum, o) => sum + parseFloat(o.totalAmount || 0), 0);
+        const consegnati = filtered.filter(o => o.status === 'delivered').length;
+        return (
+          <div>
+            {/* Filtri */}
+            <div className="panel" style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
+                  <label>Dal</label>
+                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
+                  <label>Al</label>
+                  <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>Reset</button>
+              </div>
+              {/* Riepilogo */}
+              <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text3)' }}>Ordini </span>
+                  <strong>{filtered.length}</strong>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text3)' }}>Consegnati </span>
+                  <strong style={{ color: 'var(--green)' }}>{consegnati}</strong>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '8px 16px', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text3)' }}>Totale </span>
+                  <strong style={{ color: 'var(--orange)' }}>€{totale.toFixed(2)}</strong>
+                </div>
+              </div>
+            </div>
+            {loading && <div className="loading-row"><span className="spinner" /> Caricamento...</div>}
+            {!loading && filtered.length === 0 && (
+              <div className="empty-state"><div className="empty-icon">📦</div><p>Nessun ordine nel periodo selezionato</p></div>
+            )}
+            {filtered.map(o => <OrderCard key={o.deliveryId} order={o} onRefresh={fetchOrders} onNewChatMessage={(msg, id) => onChatMsgRef.current(msg, id)} unread={unreadChats[o.deliveryId] || 0} onClearUnread={() => setUnreadChats(prev => ({ ...prev, [o.deliveryId]: 0 }))} />)}
+          </div>
+        );
+      })()}
 
       {/* Riders management */}
       {tab === 'riders' && (
