@@ -90,13 +90,6 @@ function Toast({ message, onClose }) {
       🔔 {message}
       <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.1rem', marginLeft: 4 }}>✕</button>
 
-      {/* Profilo / Cambio password */}
-      {tab === 'profile' && (
-        <ChangePasswordPanel
-          endpoint={`${API}/riders/${riderId}/change-password`}
-          label="Rider"
-        />
-      )}
 
     </div>
   );
@@ -159,13 +152,6 @@ function ChatPanel({ deliveryId, sender, onNewMessage }) {
         <button type="submit" className="btn btn-primary btn-sm">Invia</button>
       </form>
 
-      {/* Profilo / Cambio password */}
-      {tab === 'profile' && (
-        <ChangePasswordPanel
-          endpoint={`${API}/riders/${riderId}/change-password`}
-          label="Rider"
-        />
-      )}
 
     </div>
   );
@@ -210,13 +196,6 @@ function AvailableCard({ order, riderId, onAccepted }) {
         </button>
       </div>
 
-      {/* Profilo / Cambio password */}
-      {tab === 'profile' && (
-        <ChangePasswordPanel
-          endpoint={`${API}/riders/${riderId}/change-password`}
-          label="Rider"
-        />
-      )}
 
     </div>
   );
@@ -307,7 +286,6 @@ function MyDeliveryCard({ order, riderId, onUpdated, onNewChatMessage, unread = 
       {tab === 'profile' && (
         <ChangePasswordPanel
           endpoint={`${API}/riders/${riderId}/change-password`}
-          label="Rider"
         />
       )}
 
@@ -571,7 +549,6 @@ export default function RiderView({ riderId, riderInfo }) {
       {tab === 'profile' && (
         <ChangePasswordPanel
           endpoint={`${API}/riders/${riderId}/change-password`}
-          label="Rider"
         />
       )}
 
