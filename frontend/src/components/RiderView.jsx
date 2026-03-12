@@ -282,12 +282,6 @@ function MyDeliveryCard({ order, riderId, onUpdated, onNewChatMessage, unread = 
         </div>
       )}
 
-      {/* Profilo / Cambio password */}
-      {tab === 'profile' && (
-        <ChangePasswordPanel
-          endpoint={`${API}/riders/${riderId}/change-password`}
-        />
-      )}
 
     </div>
   );
