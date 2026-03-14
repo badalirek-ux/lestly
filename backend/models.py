@@ -63,6 +63,7 @@ class Rider(BaseModel):
     totalDeliveries: int = 0
     vehicle: str = "Moto"       # "Moto" | "Auto" | "Bici"
     available: bool = True
+    active: bool = True
     avatar: str = ""
 
 
