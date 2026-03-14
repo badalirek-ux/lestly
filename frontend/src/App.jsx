@@ -291,6 +291,16 @@ function AdminPanel({ onLogout }) {
     fetchRestaurants();
   };
 
+  const clearDeliveries = async () => {
+    if (!confirm("⚠️ Sei sicuro? Verranno eliminati TUTTI gli ordini dal database. Questa azione non è reversibile.")) return;
+    try {
+      await axios.delete(`${API}/deliveries/clear-database`);
+      alert("✅ Database ordini pulito con successo!");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Errore nella pulizia del database");
+    }
+  };
+
   const deleteRest = async (id) => {
     if (!confirm("Eliminare il ristorante " + id + "?")) return;
     await axios.delete(`${API}/admin/restaurants/${id}?admin_key=${ADMIN_KEY}`);
@@ -422,6 +432,21 @@ function AdminPanel({ onLogout }) {
             </div>
           )}
         </div>
+      <div style={{ padding: "0 24px 32px" }}>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, marginTop: 8 }}>
+          <h3 style={{ marginBottom: 12, color: "#e74c3c" }}>⚠️ Zona Pericolosa</h3>
+          <p style={{ color: "var(--text3)", fontSize: "0.85rem", marginBottom: 12 }}>
+            Elimina tutti gli ordini dal database. I rider e i ristoranti non vengono eliminati.
+          </p>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ color: "#e74c3c", borderColor: "#e74c3c44" }}
+            onClick={clearDeliveries}
+          >
+            🗑 Pulisci tutti gli ordini
+          </button>
+        </div>
+      </div>
       </main>
     </div>
   );
