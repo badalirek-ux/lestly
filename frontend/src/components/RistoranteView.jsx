@@ -532,7 +532,9 @@ function RiderManagement() {
     try {
       await axios.patch(`${API}/riders/${rider.riderId}/active`);
       fetchRiders();
-    } catch {}
+    } catch (err) {
+      alert(err.response?.data?.detail || err.message || 'Errore');
+    }
   };
 
   const deleteRider = async (riderId) => {
