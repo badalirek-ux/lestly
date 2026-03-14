@@ -529,8 +529,11 @@ function RiderManagement() {
   };
 
   const toggleAvailability = async (rider) => {
+    const isActive = rider.active !== false;
+    if (!confirm(isActive ? `Disattivare ${rider.name}?` : `Riattivare ${rider.name}?`)) return;
     try {
-      await axios.patch(`${API}/riders/${rider.riderId}/active`);
+      const res = await axios.patch(`${API}/riders/${rider.riderId}/active`);
+      alert(`✅ ${rider.name}: ${res.data.active ? 'Riattivato' : 'Disattivato'}`);
       fetchRiders();
     } catch (err) {
       alert(err.response?.data?.detail || err.message || 'Errore');
@@ -622,8 +625,8 @@ function RiderManagement() {
       )}
       {riders.map(r => (
         <div key={r.riderId} className="card" style={{
-          borderLeft: `3px solid ${r.available ? 'var(--green)' : 'var(--border)'}`,
-          opacity: r.available ? 1 : 0.6
+          borderLeft: `3px solid ${r.active === false ? 'var(--red, #e74c3c)' : r.available ? 'var(--green)' : 'var(--border)'}`,
+          opacity: r.active === false ? 0.5 : r.available ? 1 : 0.7
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
