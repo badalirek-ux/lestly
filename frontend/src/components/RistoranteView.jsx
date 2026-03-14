@@ -765,6 +765,7 @@ export default function RistoranteView({ restaurantId }) {
   const [dateTo, setDateTo]             = useState('');
   const [riderFilter, setRiderFilter]   = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [allRiders, setAllRiders]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [toast, setToast]           = useState(null);
   const [unreadChats, setUnreadChats] = useState({});
@@ -782,6 +783,7 @@ export default function RistoranteView({ restaurantId }) {
 
   useEffect(() => {
     fetchOrders();
+    axios.get(`${API}/riders`).then(r => setAllRiders(r.data)).catch(() => {});
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [restaurantId]);
@@ -866,8 +868,14 @@ export default function RistoranteView({ restaurantId }) {
           return true;
         });
         // Lista rider unici dagli ordini
+        const riderMap = Object.fromEntries(allRiders.map(r => [r.riderId, r.name]));
         const riderOptions = [...new Map(
-          deliveries.filter(o => o.riderId).map(o => [o.riderId, { id: o.riderId, name: o.riderName ? `${o.riderName} · ${o.riderId}` : o.riderId }])
+          deliveries.filter(o => o.riderId).map(o => [o.riderId, {
+            id: o.riderId,
+            name: (riderMap[o.riderId] || o.riderName)
+              ? `${riderMap[o.riderId] || o.riderName} · ${o.riderId}`
+              : o.riderId
+          }])
         ).values()];
         const totale = filtered.reduce((sum, o) => sum + parseFloat(o.totalAmount || 0), 0);
         const consegnati = filtered.filter(o => o.status === 'delivered').length;

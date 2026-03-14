@@ -281,6 +281,17 @@ async def update_rider_availability(rider_id: str, data: UpdateAvailability):
     return {"message": "Disponibilità aggiornata"}
 
 
+@router.patch("/riders/{rider_id}/active")
+async def toggle_rider_active(rider_id: str):
+    """Il ristorante attiva/disattiva un rider."""
+    doc = await riders_collection.find_one({"riderId": rider_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rider non trovato")
+    new_active = not doc.get("active", True)
+    await riders_collection.update_one({"riderId": rider_id}, {"$set": {"active": new_active}})
+    return {"message": "Stato aggiornato", "active": new_active}
+
+
 @router.delete("/riders/{rider_id}")
 async def delete_rider(rider_id: str):
     result = await riders_collection.delete_one({"riderId": rider_id})
