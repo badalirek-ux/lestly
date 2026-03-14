@@ -635,11 +635,11 @@ function RiderManagement() {
                 <span style={{ fontFamily: 'Syne', fontWeight: 700 }}>{r.name}</span>
                 <span style={{
                   fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 100,
-                  background: r.available ? 'var(--green-dim)' : 'var(--bg3)',
-                  color: r.available ? 'var(--green)' : 'var(--text3)',
-                  border: `1px solid ${r.available ? 'var(--green)33' : 'var(--border)'}`
+                  background: r.active === false ? 'rgba(231,76,60,0.1)' : r.available ? 'var(--green-dim)' : 'var(--bg3)',
+                  color: r.active === false ? '#e74c3c' : r.available ? 'var(--green)' : 'var(--text3)',
+                  border: `1px solid ${r.active === false ? '#e74c3c33' : r.available ? 'var(--green)33' : 'var(--border)'}`
                 }}>
-                  {r.available ? 'Disponibile' : 'Non disponibile'}
+                  {r.active === false ? '🔴 Disattivato' : r.available ? 'Disponibile' : 'Non disponibile'}
                 </span>
               </div>
               <div style={{ color: 'var(--text2)', fontSize: '0.82rem' }}>📞 {r.phone}</div>
