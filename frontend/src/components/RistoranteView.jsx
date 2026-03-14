@@ -373,9 +373,27 @@ function TrackingPanel({ tracking }) {
 
 // ── ORDER CARD ──────────────────────────────────────────────────────────────
 function OrderCard({ order, onRefresh, onNewChatMessage, unread = 0, onClearUnread }) {
-  const [expanded, setExpanded] = useState(null); // 'chat' | 'tracking' | null
+  const [expanded, setExpanded]   = useState(null); // 'chat' | 'tracking' | 'assign' | null
+  const [riders, setRiders]       = useState([]);
+  const [assigning, setAssigning] = useState(false);
 
-  const toggle = (panel) => setExpanded(prev => prev === panel ? null : panel);
+  const toggle = (panel) => {
+    if (panel === 'assign' && expanded !== 'assign') {
+      axios.get(`${API}/riders`).then(r => setRiders(r.data.filter(rd => rd.available && rd.active !== false)));
+    }
+    setExpanded(prev => prev === panel ? null : panel);
+  };
+
+  const assignRider = async (riderId) => {
+    setAssigning(true);
+    try {
+      await axios.patch(`${API}/deliveries/${order.deliveryId}/accept`, { riderId });
+      setExpanded(null);
+      onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Errore assegnazione');
+    } finally { setAssigning(false); }
+  };
 
   return (
     <div className="card" style={{ borderLeft: `3px solid ${order.status === 'delivered' ? 'var(--green)' : order.status === 'in_transit' ? 'var(--orange)' : order.status === 'accepted' ? 'var(--blue)' : 'var(--border)'}` }}>
@@ -396,6 +414,11 @@ function OrderCard({ order, onRefresh, onNewChatMessage, unread = 0, onClearUnre
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {order.status === 'pending' && (
+            <button className="btn btn-primary btn-sm" onClick={() => toggle('assign')}>
+              🛵 Assegna Rider
+            </button>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={() => toggle('tracking')}>
             {expanded === 'tracking' ? '▲' : '▼'} Tracking
           </button>
@@ -416,6 +439,29 @@ function OrderCard({ order, onRefresh, onNewChatMessage, unread = 0, onClearUnre
           )}
         </div>
       </div>
+
+      {expanded === 'assign' && (
+        <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <div className="section-title" style={{ marginBottom: 12 }}>Scegli Rider</div>
+          {riders.length === 0 ? (
+            <div style={{ color: 'var(--text3)', fontSize: '0.85rem' }}>Nessun rider disponibile al momento</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {riders.map(r => (
+                <div key={r.riderId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg3)', padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{r.name}</span>
+                    <span style={{ color: 'var(--text3)', fontSize: '0.78rem', marginLeft: 8 }}>{r.riderId} · {r.vehicle}</span>
+                  </div>
+                  <button className="btn btn-primary btn-sm" disabled={assigning} onClick={() => assignRider(r.riderId)}>
+                    {assigning ? '...' : 'Assegna'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {expanded === 'tracking' && (
         <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
@@ -484,9 +530,7 @@ function RiderManagement() {
 
   const toggleAvailability = async (rider) => {
     try {
-      await axios.patch(`${API}/riders/${rider.riderId}/availability`, {
-        available: !rider.available
-      });
+      await axios.patch(`${API}/riders/${rider.riderId}/active`);
       fetchRiders();
     } catch {}
   };
@@ -601,10 +645,11 @@ function RiderManagement() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-sm btn-ghost" onClick={() => startEdit(r)}>✏️ Modifica</button>
               <button
-                className={`btn btn-sm ${r.available ? 'btn-ghost' : 'btn-green'}`}
+                className={`btn btn-sm ${r.active === false ? 'btn-green' : 'btn-ghost'}`}
                 onClick={() => toggleAvailability(r)}
+                title={r.active === false ? 'Riattiva rider' : 'Disattiva rider (non lavora più)'}
               >
-                {r.available ? 'Disattiva' : 'Attiva'}
+                {r.active === false ? '▶ Riattiva' : '⏸ Disattiva'}
               </button>
               <button
                 className="btn btn-sm btn-ghost"
@@ -822,7 +867,7 @@ export default function RistoranteView({ restaurantId }) {
         });
         // Lista rider unici dagli ordini
         const riderOptions = [...new Map(
-          deliveries.filter(o => o.riderId).map(o => [o.riderId, { id: o.riderId, name: o.riderName || o.riderId }])
+          deliveries.filter(o => o.riderId).map(o => [o.riderId, { id: o.riderId, name: o.riderName ? `${o.riderName} · ${o.riderId}` : o.riderId }])
         ).values()];
         const totale = filtered.reduce((sum, o) => sum + parseFloat(o.totalAmount || 0), 0);
         const consegnati = filtered.filter(o => o.status === 'delivered').length;

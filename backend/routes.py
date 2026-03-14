@@ -108,11 +108,16 @@ async def accept_delivery(delivery_id: str, data: AcceptDelivery):
         "time": datetime.utcnow(),
         "message": f"Consegna accettata dal rider {data.riderId}"
     }
+    # Recupera il nome del rider per salvarlo sull'ordine
+    rider_doc = await riders_collection.find_one({"riderId": data.riderId})
+    rider_name = rider_doc.get("name", data.riderId) if rider_doc else data.riderId
+
     result = await deliveries_collection.update_one(
         {"deliveryId": delivery_id, "status": "pending"},
         {"$set": {
             "status": "accepted",
             "riderId": data.riderId,
+            "riderName": rider_name,
             "acceptedAt": datetime.utcnow()
         },
         "$push": {"tracking": tracking_event}}

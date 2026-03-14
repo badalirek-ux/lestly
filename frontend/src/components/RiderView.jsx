@@ -354,15 +354,12 @@ function ChangePasswordPanel({ endpoint }) {
 
 // ── MAIN RIDER VIEW ───────────────────────────────────────────────────────────
 export default function RiderView({ riderId, riderInfo }) {
-  const [available,    setAvailable]    = useState([]);
-  const [isOnline,     setIsOnline]     = useState(riderInfo?.available ?? true);
+  const [isOnline,       setIsOnline]       = useState(riderInfo?.available ?? true);
   const [togglingOnline, setTogglingOnline] = useState(false);
-  const [myDeliveries, setMyDeliveries] = useState([]);
-  const [tab,          setTab]          = useState('available');
+  const [myDeliveries,   setMyDeliveries]   = useState([]);
+  const [tab,            setTab]            = useState('active');
   const [loading,      setLoading]      = useState(true);
   const [toast,        setToast]        = useState(null);
-  const prevAvailCount                  = useRef(0);
-
   const [unreadChats, setUnreadChats] = useState({});
 
   const handleNewChatMessage = (message, deliveryId) => {
@@ -387,21 +384,13 @@ export default function RiderView({ riderId, riderInfo }) {
 
   const fetchData = async () => {
     try {
-      const [avRes, myRes] = await Promise.all([
-        axios.get(`${API}/deliveries/available`),
-        axios.get(`${API}/deliveries/rider/${riderId}`)
-      ]);
-
-      // Notifica nuovo ordine disponibile
-      if (avRes.data.length > prevAvailCount.current && prevAvailCount.current > 0) {
-        const diff = avRes.data.length - prevAvailCount.current;
-        const msg = `${diff} nuovo ordine disponibile!`;
-        showToast(msg);
-        notify('🛵 Lestly', msg, { tag: 'new-order' });
+      const myRes = await axios.get(`${API}/deliveries/rider/${riderId}`);
+      const prev = myDeliveries.filter(d => d.status === 'accepted').length;
+      const next = myRes.data.filter(d => d.status === 'accepted').length;
+      if (next > prev && prev >= 0 && myDeliveries.length > 0) {
+        showToast('🛵 Nuovo ordine assegnato!');
+        notify('🛵 Lestly', 'Hai un nuovo ordine assegnato!', { tag: 'new-order' });
       }
-      prevAvailCount.current = avRes.data.length;
-
-      setAvailable(avRes.data);
       setMyDeliveries(myRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -417,9 +406,8 @@ export default function RiderView({ riderId, riderInfo }) {
   const completed = myDeliveries.filter(d => d.status === 'delivered');
 
   const stats = [
-    { label: 'Disponibili', value: available.length,  color: 'var(--yellow)' },
-    { label: 'In corso',    value: active.length,      color: 'var(--orange)' },
-    { label: 'Consegnati',  value: completed.length,   color: 'var(--green)' },
+    { label: 'In corso',   value: active.length,    color: 'var(--orange)' },
+    { label: 'Consegnati', value: completed.length, color: 'var(--green)' },
   ];
 
   return (
@@ -462,10 +450,7 @@ export default function RiderView({ riderId, riderInfo }) {
 
       {/* Tabs */}
       <div className="tabs" style={{ width: '100%', marginBottom: 20 }}>
-        <button className={`tab ${tab === 'available' ? 'active' : ''}`} onClick={() => setTab('available')} style={{ flex: 1 }}>
-          Disponibili {available.length > 0 && <span style={{ background: 'var(--orange)', color: 'white', borderRadius: 100, padding: '1px 7px', fontSize: '0.7rem', marginLeft: 4 }}>{available.length}</span>}
-        </button>
-        <button className={`tab ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')} style={{ flex: 1 }}>
+<button className={`tab ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')} style={{ flex: 1 }}>
           In corso {active.length > 0 && <span style={{ background: 'var(--blue)', color: 'white', borderRadius: 100, padding: '1px 7px', fontSize: '0.7rem', marginLeft: 4 }}>{active.length}</span>}
         </button>
         <button className={`tab ${tab === 'completed' ? 'active' : ''}`} onClick={() => setTab('completed')} style={{ flex: 1 }}>
@@ -476,8 +461,8 @@ export default function RiderView({ riderId, riderInfo }) {
         </button>
       </div>
 
-      {/* Available */}
-      {tab === 'available' && (
+      {/* Available - rimosso, il ristorante assegna direttamente */}
+      {tab === 'available_disabled' && (
         <div>
           {loading && <div className="loading-row"><span className="spinner" /> Caricamento...</div>}
           {!loading && available.length === 0 && (
