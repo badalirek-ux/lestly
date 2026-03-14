@@ -157,6 +157,15 @@ async def update_delivery_status(delivery_id: str, data: UpdateStatus):
     return {"message": "Stato aggiornato"}
 
 
+@router.delete("/deliveries/clear-restaurant/{restaurant_id}")
+async def clear_restaurant_deliveries(restaurant_id: str, admin_key: str = Query(...)):
+    """Elimina tutti gli ordini di un singolo ristorante."""
+    if admin_key != os.getenv("ADMIN_KEY", "lestly-admin-2024"):
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    result = await deliveries_collection.delete_many({"restaurantId": restaurant_id})
+    return {"message": f"Eliminati {result.deleted_count} ordini del ristorante {restaurant_id}"}
+
+
 @router.delete("/deliveries/clear-database")
 async def clear_database():
     result = await deliveries_collection.delete_many({})

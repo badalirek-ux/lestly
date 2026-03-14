@@ -291,6 +291,16 @@ function AdminPanel({ onLogout }) {
     fetchRestaurants();
   };
 
+  const clearRestaurantOrders = async (id, name) => {
+    if (!confirm(`⚠️ Eliminare tutti gli ordini di "${name}"? Questa azione non è reversibile.`)) return;
+    try {
+      await axios.delete(`${API}/deliveries/clear-restaurant/${id}?admin_key=${ADMIN_KEY}`);
+      alert(`✅ Ordini di "${name}" eliminati con successo!`);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Errore nella pulizia");
+    }
+  };
+
   const clearDeliveries = async () => {
     if (!confirm("⚠️ Sei sicuro? Verranno eliminati TUTTI gli ordini dal database. Questa azione non è reversibile.")) return;
     try {
@@ -396,6 +406,9 @@ function AdminPanel({ onLogout }) {
                   <button className="btn btn-ghost btn-sm" onClick={() => startEdit(r)}>✏️</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(r.restaurantId)}>
                     {r.active ? "⏸ Disattiva" : "▶ Attiva"}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: "#e67e22", borderColor: "#e67e2244" }} onClick={() => clearRestaurantOrders(r.restaurantId, r.name)} title="Pulisci ordini">
+                    🧹
                   </button>
                   <button className="btn btn-ghost btn-sm" style={{ color: "#e74c3c" }} onClick={() => deleteRest(r.restaurantId)}>
                     🗑
